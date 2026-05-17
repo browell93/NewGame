@@ -1,0 +1,95 @@
+import Link from "next/link";
+import { signInAction } from "@/server/actions/auth";
+
+type SignInPageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    message?: string;
+  }>;
+};
+
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+  const params = await searchParams;
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-6 py-10">
+      <section className="grid w-full overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.06] shadow-2xl shadow-black/40 lg:grid-cols-2">
+        <div className="hidden border-r border-white/10 bg-slate-950/60 p-10 lg:block">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-300">
+            Kingdoms of Ash
+          </p>
+          <h1 className="mt-8 text-4xl font-black tracking-tight text-white">
+            Return to your city command room.
+          </h1>
+          <p className="mt-5 max-w-md leading-7 text-slate-300">
+            Sign in to load your protected dashboard. On first entry, the server creates your profile,
+            capital city, starter buildings, resources, and field plots safely and only once.
+          </p>
+        </div>
+
+        <div className="p-6 sm:p-10">
+          <div className="mb-8">
+            <p className="text-sm font-medium text-amber-200">Welcome back</p>
+            <h2 className="mt-2 text-3xl font-bold text-white">Sign in</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Use the account attached to your Supabase project.
+            </p>
+          </div>
+
+          {params?.error ? (
+            <div className="mb-5 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+              {params.error}
+            </div>
+          ) : null}
+
+          {params?.message ? (
+            <div className="mb-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
+              {params.message}
+            </div>
+          ) : null}
+
+          <form action={signInAction} className="space-y-5">
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-200">Email</span>
+              <input
+                autoComplete="email"
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-amber-300/70"
+                name="email"
+                placeholder="ruler@example.com"
+                required
+                type="email"
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-200">Password</span>
+              <input
+                autoComplete="current-password"
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-amber-300/70"
+                minLength={8}
+                name="password"
+                placeholder="••••••••"
+                required
+                type="password"
+              />
+            </label>
+
+            <button
+              className="w-full rounded-2xl bg-amber-300 px-5 py-3 font-semibold text-slate-950 transition hover:bg-amber-200"
+              type="submit"
+            >
+              Enter the realm
+            </button>
+          </form>
+
+          <p className="mt-6 text-sm text-slate-400">
+            Need an account?{" "}
+            <Link className="font-semibold text-amber-200 hover:text-amber-100" href="/auth/sign-up">
+              Create one
+            </Link>
+          </p>
+        </div>
+      </section>
+    </main>
+  );
+}
