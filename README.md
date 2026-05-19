@@ -120,6 +120,8 @@ Set Supabase environment variables in Vercel for every deployment environment yo
 
 For the production `new-game-ruddy.vercel.app` deployment, make sure both variables are enabled for **Production** and then redeploy after saving them. If either value is missing, public pages continue to load, but game/auth requests show setup guidance instead of crashing with a 500.
 
+For the production `new-game-ruddy.vercel.app` deployment, make sure both variables are enabled for **Production** and then redeploy after saving them. If either value is missing, public pages continue to load, but game/auth requests show setup guidance instead of crashing with a 500.
+
 Preview and Production can point to separate Supabase projects when you are ready to isolate staging data.
 
 ## Current milestone boundary
