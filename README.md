@@ -118,6 +118,8 @@ Set the same two environment variables in Vercel for every deployment environmen
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
+For the production `new-game-ruddy.vercel.app` deployment, make sure both variables are enabled for **Production** and then redeploy after saving them. If either value is missing, public pages continue to load, but game/auth requests show setup guidance instead of crashing with a 500.
+
 Preview and Production can point to separate Supabase projects when you are ready to isolate staging data.
 
 ## Current milestone boundary
@@ -143,3 +145,15 @@ Move to **Milestone 2** next:
 - Beginner protection state
 - Expanded navigation
 - Tests for protection expiration rules
+
+## Vercel Redeploy Checklist
+
+1. Copy `.env.example` to `.env.local` for local development.
+2. In Vercel project settings, add:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+3. Ensure Vercel uses Node `22.x` and npm `10.x` (from `package.json`).
+4. Trigger a redeploy from the latest `main` commit.
+
+This repository includes `vercel.json` with `npm ci` for deterministic installs.
+
