@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { DashboardPanel } from "@/components/game/dashboard-panel";
 import { MetricCard } from "@/components/game/metric-card";
+import { getMissingSupabaseEnvNames } from "@/lib/env";
 import { formatResourceAmount } from "@/lib/game/resource-math";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { ensureStarterCityForUser } from "@/server/services/bootstrap";
@@ -14,7 +15,41 @@ const resourceLabels = {
   iron: "Iron",
 } as const;
 
+function SupabaseSetupNotice({ missingEnvNames }: { missingEnvNames: string[] }) {
+  return (
+    <section className="rounded-[2rem] border border-amber-300/20 bg-amber-300/10 p-6 shadow-2xl shadow-black/20">
+      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-200">
+        Supabase setup required
+      </p>
+      <h2 className="mt-3 text-3xl font-black tracking-tight text-white">
+        Add your Supabase environment variables in Vercel.
+      </h2>
+      <p className="mt-4 max-w-3xl leading-7 text-slate-200">
+        The public landing page can load without Supabase, but the game dashboard needs these values before
+        authentication and city data can work. Add them in Vercel Project Settings, then redeploy production.
+      </p>
+      <ul className="mt-5 space-y-2 text-sm text-slate-100">
+        {missingEnvNames.map((name) => (
+          <li key={name} className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 font-mono">
+            {name}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-5 text-sm leading-6 text-slate-300">
+        Vercel path: Project → Settings → Environment Variables. Make sure the variables are enabled for
+        Production, then redeploy the latest deployment so the runtime receives them.
+      </p>
+    </section>
+  );
+}
+
 export default async function GameDashboardPage() {
+  const missingEnvNames = getMissingSupabaseEnvNames();
+
+  if (missingEnvNames.length > 0) {
+    return <SupabaseSetupNotice missingEnvNames={missingEnvNames} />;
+  }
+
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
