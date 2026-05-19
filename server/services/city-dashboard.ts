@@ -25,6 +25,11 @@ type CityRow = {
   region_key: string;
 };
 
+type ProfileRow = {
+  beginner_protection_ends_at: string;
+  protection_break_reason: string | null;
+};
+
 type ResourceRow = {
   food: number;
   gold: number;
@@ -56,6 +61,10 @@ export type PrimaryCityDashboard = {
     id: string;
     name: string;
     regionKey: string;
+  };
+  protection: {
+    endsAtIso: string;
+    breakReason: string | null;
   };
   resources: {
     food: number;
@@ -98,6 +107,12 @@ export async function getPrimaryCityDashboard(client: unknown, userId: string): 
     return null;
   }
 
+  const profileQuery = db
+    .from("player_profiles")
+    .select("beginner_protection_ends_at, protection_break_reason") as SingleQueryBuilder<ProfileRow>;
+  const { data: profile, error: profileError } = await profileQuery.eq("user_id", userId).maybeSingle();
+  throwIfError(profileError, "Could not load player protection state");
+
   const resourcesQuery = db
     .from("city_resources")
     .select("food, gold, iron, lumber, stone") as SingleQueryBuilder<ResourceRow>;
@@ -116,7 +131,7 @@ export async function getPrimaryCityDashboard(client: unknown, userId: string): 
   const { data: buildings, error: buildingsError } = await buildingsQuery.eq("city_id", city.id).order("building_key", { ascending: true });
   throwIfError(buildingsError, "Could not load city buildings");
 
-  if (!resources || !population) {
+  if (!resources || !population || !profile) {
     throw new Error("City records are incomplete after bootstrap.");
   }
 
@@ -127,6 +142,10 @@ export async function getPrimaryCityDashboard(client: unknown, userId: string): 
       regionKey: city.region_key,
     },
     resources,
+    protection: {
+      endsAtIso: profile.beginner_protection_ends_at,
+      breakReason: profile.protection_break_reason,
+    },
     population: {
       currentPopulation: population.current_population,
       idlePopulation: population.idle_population,
