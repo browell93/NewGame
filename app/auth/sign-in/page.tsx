@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { SupabaseConfigAlert } from "@/components/auth/supabase-config-alert";
+import { getMissingSupabaseEnvNames } from "@/lib/env";
 import { signInAction } from "@/server/actions/auth";
 
 type SignInPageProps = {
@@ -10,6 +12,8 @@ type SignInPageProps = {
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   const params = await searchParams;
+  const missingEnvNames = getMissingSupabaseEnvNames();
+  const isSupabaseMissing = missingEnvNames.length > 0;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-6 py-10">
@@ -36,7 +40,9 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             </p>
           </div>
 
-          {params?.error ? (
+          <SupabaseConfigAlert missingEnvNames={missingEnvNames} />
+
+          {!isSupabaseMissing && params?.error ? (
             <div className="mb-5 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
               {params.error}
             </div>
@@ -54,6 +60,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
               <input
                 autoComplete="email"
                 className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-amber-300/70"
+                disabled={isSupabaseMissing}
                 name="email"
                 placeholder="ruler@example.com"
                 required
@@ -66,6 +73,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
               <input
                 autoComplete="current-password"
                 className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-amber-300/70"
+                disabled={isSupabaseMissing}
                 minLength={8}
                 name="password"
                 placeholder="••••••••"
@@ -75,10 +83,11 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             </label>
 
             <button
-              className="w-full rounded-2xl bg-amber-300 px-5 py-3 font-semibold text-slate-950 transition hover:bg-amber-200"
+              className="w-full rounded-2xl bg-amber-300 px-5 py-3 font-semibold text-slate-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300"
+              disabled={isSupabaseMissing}
               type="submit"
             >
-              Enter the realm
+              {isSupabaseMissing ? "Finish Vercel setup first" : "Enter the realm"}
             </button>
           </form>
 
