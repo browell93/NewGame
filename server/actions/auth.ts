@@ -13,8 +13,8 @@ function encodeMessage(message: string) {
   return encodeURIComponent(message);
 }
 
-function missingSupabaseConfigMessage(missingEnvNames: string[]) {
-  return `Supabase is not configured yet. Add ${missingEnvNames.join(", ")} in Vercel Project Settings > Environment Variables, then redeploy.`;
+function supabaseSetupUrl(path: "/auth/sign-in" | "/auth/sign-up") {
+  return `${path}?setup=supabase`;
 }
 
 export async function signInAction(formData: FormData) {
@@ -28,7 +28,7 @@ export async function signInAction(formData: FormData) {
   const missingEnvNames = getMissingSupabaseEnvNames();
 
   if (missingEnvNames.length > 0) {
-    redirect(`/auth/sign-in?error=${encodeMessage(missingSupabaseConfigMessage(missingEnvNames))}`);
+    redirect(supabaseSetupUrl("/auth/sign-in"));
   }
 
   const supabase = await createServerSupabaseClient();
@@ -53,7 +53,7 @@ export async function signUpAction(formData: FormData) {
   const missingEnvNames = getMissingSupabaseEnvNames();
 
   if (missingEnvNames.length > 0) {
-    redirect(`/auth/sign-up?error=${encodeMessage(missingSupabaseConfigMessage(missingEnvNames))}`);
+    redirect(supabaseSetupUrl("/auth/sign-up"));
   }
 
   const supabase = await createServerSupabaseClient();
