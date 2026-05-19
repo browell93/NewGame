@@ -120,8 +120,6 @@ Set Supabase environment variables in Vercel for every deployment environment yo
 
 For the production `new-game-ruddy.vercel.app` deployment, make sure both variables are enabled for **Production** and then redeploy after saving them. If either value is missing, public pages continue to load, but game/auth requests show setup guidance instead of crashing with a 500.
 
-For the production `new-game-ruddy.vercel.app` deployment, make sure both variables are enabled for **Production** and then redeploy after saving them. If either value is missing, public pages continue to load, but game/auth requests show setup guidance instead of crashing with a 500.
-
 Preview and Production can point to separate Supabase projects when you are ready to isolate staging data.
 
 ## Current milestone boundary
@@ -159,3 +157,15 @@ Move to **Milestone 2** next:
 
 This repository includes `vercel.json` with `npm ci` for deterministic installs.
 
+
+## Milestone 2 implementation checklist
+
+Use this checklist to keep the next PR focused and testable:
+
+- [ ] Starter profile/city creation remains idempotent across repeated first-login requests.
+- [ ] Region assignment writes deterministic defaults and persists them on the player profile.
+- [ ] Beginner protection stores start/end timestamps and can be invalidated by explicit early-break conditions.
+- [ ] Navigation links for newly introduced game sections resolve to routes that render without auth/session regressions.
+- [ ] Unit tests cover beginner protection expiration and early-break rule behavior.
+
+Recommended PR scope: only Milestone 2 acceptance work; defer resource accrual and queue systems to later milestones.
