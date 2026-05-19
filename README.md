@@ -113,10 +113,12 @@ npm run build
 
 ## 7. Vercel deployment notes
 
-Set the same two environment variables in Vercel for every deployment environment you intend to use:
+Set Supabase environment variables in Vercel for every deployment environment you intend to use:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` (preferred) **or** `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+For the production `new-game-ruddy.vercel.app` deployment, make sure both variables are enabled for **Production** and then redeploy after saving them. If either value is missing, public pages continue to load, but game/auth requests show setup guidance instead of crashing with a 500.
 
 For the production `new-game-ruddy.vercel.app` deployment, make sure both variables are enabled for **Production** and then redeploy after saving them. If either value is missing, public pages continue to load, but game/auth requests show setup guidance instead of crashing with a 500.
 

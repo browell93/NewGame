@@ -1,9 +1,8 @@
 const requiredSupabaseEnvNames = [
   "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
 ] as const;
 
-type SupabaseEnvName = (typeof requiredSupabaseEnvNames)[number];
+type SupabaseEnvName = (typeof requiredSupabaseEnvNames)[number] | "NEXT_PUBLIC_SUPABASE_ANON_KEY" | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY";
 
 export type SupabaseEnv = {
   supabaseUrl: string;
@@ -11,7 +10,13 @@ export type SupabaseEnv = {
 };
 
 export function getMissingSupabaseEnvNames() {
-  return requiredSupabaseEnvNames.filter((name) => !process.env[name]);
+  const missing: string[] = requiredSupabaseEnvNames.filter((name) => !process.env[name]);
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+    missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+  }
+
+  return missing;
 }
 
 export function isSupabaseConfigured() {
@@ -43,6 +48,8 @@ export function getSupabaseEnv(): SupabaseEnv {
 
   return {
     supabaseUrl: readRequiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    supabaseAnonKey: readRequiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    supabaseAnonKey:
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+      readRequiredEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
   };
 }
