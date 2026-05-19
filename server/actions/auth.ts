@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { getMissingSupabaseEnvNames } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 function readText(formData: FormData, field: string) {
@@ -12,12 +13,22 @@ function encodeMessage(message: string) {
   return encodeURIComponent(message);
 }
 
+function missingSupabaseConfigMessage(missingEnvNames: string[]) {
+  return `Supabase is not configured yet. Add ${missingEnvNames.join(", ")} in Vercel Project Settings > Environment Variables, then redeploy.`;
+}
+
 export async function signInAction(formData: FormData) {
   const email = readText(formData, "email");
   const password = readText(formData, "password");
 
   if (!email || !password) {
     redirect(`/auth/sign-in?error=${encodeMessage("Email and password are required.")}`);
+  }
+
+  const missingEnvNames = getMissingSupabaseEnvNames();
+
+  if (missingEnvNames.length > 0) {
+    redirect(`/auth/sign-in?error=${encodeMessage(missingSupabaseConfigMessage(missingEnvNames))}`);
   }
 
   const supabase = await createServerSupabaseClient();
@@ -39,6 +50,12 @@ export async function signUpAction(formData: FormData) {
     redirect(`/auth/sign-up?error=${encodeMessage("Display name, email, and password are required.")}`);
   }
 
+  const missingEnvNames = getMissingSupabaseEnvNames();
+
+  if (missingEnvNames.length > 0) {
+    redirect(`/auth/sign-up?error=${encodeMessage(missingSupabaseConfigMessage(missingEnvNames))}`);
+  }
+
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.auth.signUp({
     email,
@@ -58,6 +75,12 @@ export async function signUpAction(formData: FormData) {
 }
 
 export async function signOutAction() {
+  const missingEnvNames = getMissingSupabaseEnvNames();
+
+  if (missingEnvNames.length > 0) {
+    redirect("/");
+  }
+
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();
   redirect("/");
