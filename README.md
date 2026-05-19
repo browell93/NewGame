@@ -143,3 +143,15 @@ Move to **Milestone 2** next:
 - Beginner protection state
 - Expanded navigation
 - Tests for protection expiration rules
+
+## Vercel Redeploy Checklist
+
+1. Copy `.env.example` to `.env.local` for local development.
+2. In Vercel project settings, add:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+3. Ensure Vercel uses Node `22.x` and npm `10.x` (from `package.json`).
+4. Trigger a redeploy from the latest `main` commit.
+
+This repository includes `vercel.json` with `npm ci` for deterministic installs.
+
