@@ -169,3 +169,7 @@ Use this checklist to keep the next PR focused and testable:
 - [ ] Unit tests cover beginner protection expiration and early-break rule behavior.
 
 Recommended PR scope: only Milestone 2 acceptance work; defer resource accrual and queue systems to later milestones.
+
+## Deployment troubleshooting
+
+If Vercel reports a compile error for code that is already fixed locally, verify the failing deployment commit SHA is behind `main` and redeploy after pushing the latest commit.
