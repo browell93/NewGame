@@ -84,6 +84,9 @@ export default async function GameDashboardPage({
   const protectionIsActive = isBeginnerProtectionActive(dashboard.protection);
   const protectionLabel = getBeginnerProtectionLabel(dashboard.protection);
 
+  const protectionIsActive = isBeginnerProtectionActive(dashboard.protection);
+  const protectionLabel = getBeginnerProtectionLabel(dashboard.protection);
+
   return (
     <section className="space-y-6">
       {message ? <p className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 p-3 text-sm text-emerald-100">{message}</p> : null}
