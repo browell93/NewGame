@@ -5,6 +5,7 @@ import { getMissingSupabaseEnvNames } from "@/lib/env";
 import { getBeginnerProtectionLabel, isBeginnerProtectionActive } from "@/lib/game/beginner-protection";
 import { formatResourceAmount } from "@/lib/game/resource-math";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { projectAccruedResources } from "@/server/services/resource-accrual";
 import { ensureStarterCityForUser } from "@/server/services/bootstrap";
 import { getPrimaryCityDashboard } from "@/server/services/city-dashboard";
 
@@ -59,10 +60,16 @@ export default async function GameDashboardPage() {
     throw new Error("Starter city bootstrap completed, but no dashboard city could be loaded.");
   }
 
+  const projectedResources = projectAccruedResources({
+    snapshot: dashboard.resources,
+    lastCollectedAt: dashboard.resourcesLastCollectedAt,
+    taxRate: dashboard.population.taxRate,
+  });
+
   const resources = Object.entries(resourceLabels).map(([key, label]) => ({
     key,
     label,
-    value: dashboard.resources[key as keyof typeof dashboard.resources],
+    value: projectedResources[key as keyof typeof projectedResources],
   }));
 
   const protectionIsActive = isBeginnerProtectionActive(dashboard.protection);
@@ -95,7 +102,7 @@ export default async function GameDashboardPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {resources.map((resource) => (
-          <MetricCard key={resource.key} label={resource.label} value={formatResourceAmount(resource.value)} detail="Starter stockpile" />
+          <MetricCard key={resource.key} label={resource.label} value={formatResourceAmount(resource.value)} detail="Projected with passive accrual" />
         ))}
       </div>
     </section>
