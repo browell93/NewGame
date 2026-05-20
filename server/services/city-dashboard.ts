@@ -31,6 +31,7 @@ type ProfileRow = {
 };
 
 type ResourceRow = {
+  last_collected_at: string;
   food: number;
   gold: number;
   iron: number;
@@ -73,6 +74,7 @@ export type PrimaryCityDashboard = {
     lumber: number;
     stone: number;
   };
+  resourcesLastCollectedAt: string;
   population: {
     currentPopulation: number;
     idlePopulation: number;
@@ -115,7 +117,7 @@ export async function getPrimaryCityDashboard(client: unknown, userId: string): 
 
   const resourcesQuery = db
     .from("city_resources")
-    .select("food, gold, iron, lumber, stone") as SingleQueryBuilder<ResourceRow>;
+    .select("food, gold, iron, lumber, stone, last_collected_at") as SingleQueryBuilder<ResourceRow>;
   const { data: resources, error: resourcesError } = await resourcesQuery.eq("city_id", city.id).maybeSingle();
   throwIfError(resourcesError, "Could not load city resources");
 

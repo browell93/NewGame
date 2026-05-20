@@ -5,8 +5,10 @@ import { getMissingSupabaseEnvNames } from "@/lib/env";
 import { getBeginnerProtectionLabel, isBeginnerProtectionActive } from "@/lib/game/beginner-protection";
 import { formatResourceAmount } from "@/lib/game/resource-math";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { collectResourcesAction } from "@/server/actions/resources";
 import { ensureStarterCityForUser } from "@/server/services/bootstrap";
 import { getPrimaryCityDashboard } from "@/server/services/city-dashboard";
+import { projectAccruedResources } from "@/server/services/resource-accrual";
 
 const resourceLabels = {
   gold: "Gold",
@@ -54,15 +56,24 @@ export default async function GameDashboardPage() {
 
   await ensureStarterCityForUser(supabase, user);
   const dashboard = await getPrimaryCityDashboard(supabase, user.id);
+  if (!dashboard) throw new Error("Starter city bootstrap completed, but no dashboard city could be loaded.");
 
-  if (!dashboard) {
-    throw new Error("Starter city bootstrap completed, but no dashboard city could be loaded.");
-  }
+  const projectedResources = projectAccruedResources({
+    snapshot: dashboard.resources,
+    lastCollectedAt: dashboard.resourcesLastCollectedAt,
+    taxRate: dashboard.population.taxRate,
+  });
+
+  const projectedResources = projectAccruedResources({
+    snapshot: dashboard.resources,
+    lastCollectedAt: dashboard.resourcesLastCollectedAt,
+    taxRate: dashboard.population.taxRate,
+  });
 
   const resources = Object.entries(resourceLabels).map(([key, label]) => ({
     key,
     label,
-    value: dashboard.resources[key as keyof typeof dashboard.resources],
+    value: projectedResources[key as keyof typeof projectedResources],
   }));
 
   const protectionIsActive = isBeginnerProtectionActive(dashboard.protection);
@@ -70,6 +81,9 @@ export default async function GameDashboardPage() {
 
   return (
     <section className="space-y-6">
+      {message ? <p className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 p-3 text-sm text-emerald-100">{message}</p> : null}
+      {errorMessage ? <p className="rounded-xl border border-rose-300/20 bg-rose-300/10 p-3 text-sm text-rose-100">{errorMessage}</p> : null}
+
       <DashboardPanel>
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
@@ -90,6 +104,14 @@ export default async function GameDashboardPage() {
               Beginner protection: <span className="font-semibold">{protectionLabel}</span>
             </div>
           </div>
+        </div>
+
+        <div className="mt-4">
+          <form action={collectResourcesAction}>
+            <button type="submit" className="rounded-xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm font-semibold text-amber-100">
+              Collect now
+            </button>
+          </form>
         </div>
       </DashboardPanel>
 
