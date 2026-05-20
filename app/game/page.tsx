@@ -67,6 +67,12 @@ export default async function GameDashboardPage({
     taxRate: dashboard.population.taxRate,
   });
 
+  const projectedResources = projectAccruedResources({
+    snapshot: dashboard.resources,
+    lastCollectedAt: dashboard.resourcesLastCollectedAt,
+    taxRate: dashboard.population.taxRate,
+  });
+
   const resources = Object.entries(resourceLabels).map(([key, label]) => ({
     key,
     label,
