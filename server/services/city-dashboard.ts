@@ -143,14 +143,7 @@ export async function getPrimaryCityDashboard(client: unknown, userId: string): 
       name: city.name,
       regionKey: city.region_key,
     },
-    resources: {
-      food: resources.food,
-      gold: resources.gold,
-      iron: resources.iron,
-      lumber: resources.lumber,
-      stone: resources.stone,
-    },
-    resourcesLastCollectedAt: resources.last_collected_at,
+    resources,
     protection: {
       endsAtIso: profile.beginner_protection_ends_at,
       breakReason: profile.protection_break_reason,
