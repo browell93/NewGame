@@ -72,6 +72,17 @@ export default async function GameDashboardPage({
     label,
     value: projectedResources[key as keyof typeof projectedResources],
   }));
+  const productionPerHour = {
+    gold: Math.floor(36 * (1 + Math.max(0, dashboard.population.taxRate) / 100)),
+    food: 140,
+    lumber: 110,
+    stone: 95,
+    iron: 80,
+  };
+
+
+  const protectionIsActive = isBeginnerProtectionActive(dashboard.protection);
+  const protectionLabel = getBeginnerProtectionLabel(dashboard.protection);
 
   const protectionIsActive = isBeginnerProtectionActive(dashboard.protection);
   const protectionLabel = getBeginnerProtectionLabel(dashboard.protection);
@@ -103,6 +114,18 @@ export default async function GameDashboardPage({
               Collect now
             </button>
           </form>
+        </div>
+      </DashboardPanel>
+
+
+      <DashboardPanel title="Resource cadence" eyebrow="Milestone 3">
+        <p className="text-sm text-slate-300">Last collected: {new Date(dashboard.resourcesLastCollectedAt).toLocaleString()}</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {Object.entries(resourceLabels).map(([key, label]) => (
+            <p key={`rate-${key}`} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-sm text-slate-200">
+              {label}: +{formatResourceAmount(productionPerHour[key as keyof typeof productionPerHour])}/hr
+            </p>
+          ))}
         </div>
       </DashboardPanel>
 
