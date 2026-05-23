@@ -25,22 +25,13 @@ export async function queueMilitiaTrainingAction() {
   });
   if (error) redirect(`/game/troops?error=${encodeURIComponent(error.message)}`);
 
-  const { data: existing } = await supabase.from("city_troop_stacks").select("quantity").eq("city_id", dashboard.city.id).eq("troop_type", "militia").maybeSingle();
-  const nextQty = (existing?.quantity ?? 0) + quantity;
-  const { error: stackError } = await supabase
-    .from("city_troop_stacks")
-    .upsert(
-      {
-        city_id: dashboard.city.id,
-        troop_type: "militia",
-        quantity: nextQty,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "city_id,troop_type" },
-    );
-
-  if (stackError) {
-    redirect(`/game/troops?error=${encodeURIComponent(stackError.message)}`);
+  const { error: stackIncrementError } = await supabase.rpc("increment_city_troop_stack", {
+    p_city_id: dashboard.city.id,
+    p_troop_type: "militia",
+    p_quantity_delta: quantity,
+  });
+  if (stackIncrementError) {
+    redirect(`/game/troops?error=${encodeURIComponent(stackIncrementError.message)}`);
   }
 
   revalidatePath("/game/troops");
