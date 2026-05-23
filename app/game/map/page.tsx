@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { DashboardPanel } from "@/components/game/dashboard-panel";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { dispatchScoutMarchAction } from "@/server/actions/marches";
 import { scoutNextRegionAction } from "@/server/actions/map";
 import { getPlayerMapRegions } from "@/server/services/map-regions";
+import { getPlayerMarches } from "@/server/services/marches";
 
 export default async function MapPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const params = (await searchParams) ?? {};
@@ -14,6 +16,7 @@ export default async function MapPage({ searchParams }: { searchParams?: Promise
   if (!user) redirect("/auth/sign-in?error=Please%20sign%20in%20to%20open%20map");
 
   const regions = await getPlayerMapRegions(supabase as never, user.id);
+  const marches = await getPlayerMarches(supabase as never, user.id);
 
   return (
     <section className="space-y-6">
@@ -27,6 +30,15 @@ export default async function MapPage({ searchParams }: { searchParams?: Promise
         </form>
       </DashboardPanel>
 
+      <DashboardPanel title="March command" eyebrow="Milestone 14">
+        <p className="text-sm text-slate-300">Dispatch a scout march to a discovered or frontier-adjacent region.</p>
+        <form action={dispatchScoutMarchAction} className="mt-4 grid gap-3 sm:max-w-md">
+          <input name="destinationRegionKey" placeholder="frontier-02" className="rounded-xl border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-white" />
+          <input name="troopQuantity" type="number" min={1} defaultValue={10} className="rounded-xl border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-white" />
+          <button type="submit" className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold text-white">Dispatch scout march</button>
+        </form>
+      </DashboardPanel>
+
       <DashboardPanel title="Known regions" eyebrow="Exploration">
         <div className="space-y-2">
           {regions.map((region) => (
@@ -35,6 +47,20 @@ export default async function MapPage({ searchParams }: { searchParams?: Promise
             </article>
           ))}
         </div>
+      </DashboardPanel>
+
+      <DashboardPanel title="Active marches" eyebrow="Operations">
+        {marches.length === 0 ? (
+          <p className="text-sm text-slate-300">No active marches.</p>
+        ) : (
+          <div className="space-y-2">
+            {marches.map((march) => (
+              <article key={march.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-sm text-slate-200">
+                {march.troopType} x{march.troopQuantity} → {march.destinationRegionKey} ({march.status}) • arrives {new Date(march.arrivesAt).toLocaleString()}
+              </article>
+            ))}
+          </div>
+        )}
       </DashboardPanel>
     </section>
   );

@@ -80,13 +80,6 @@ export type PrimaryCityDashboard = {
     stone: number;
   };
   resourcesLastCollectedAt: string;
-  resourceFractions: {
-    food: number;
-    gold: number;
-    iron: number;
-    lumber: number;
-    stone: number;
-  };
   population: {
     currentPopulation: number;
     idlePopulation: number;
@@ -129,7 +122,7 @@ export async function getPrimaryCityDashboard(client: unknown, userId: string): 
 
   const resourcesQuery = db
     .from("city_resources")
-    .select("food, gold, iron, lumber, stone, last_collected_at, food_fraction, gold_fraction, iron_fraction, lumber_fraction, stone_fraction") as SingleQueryBuilder<ResourceRow>;
+    .select("food, gold, iron, lumber, stone, last_collected_at") as SingleQueryBuilder<ResourceRow>;
   const { data: resources, error: resourcesError } = await resourcesQuery.eq("city_id", city.id).maybeSingle();
   throwIfError(resourcesError, "Could not load city resources");
 
@@ -163,13 +156,6 @@ export async function getPrimaryCityDashboard(client: unknown, userId: string): 
       stone: resources.stone,
     },
     resourcesLastCollectedAt: resources.last_collected_at,
-    resourceFractions: {
-      food: resources.food_fraction,
-      gold: resources.gold_fraction,
-      iron: resources.iron_fraction,
-      lumber: resources.lumber_fraction,
-      stone: resources.stone_fraction,
-    },
     protection: {
       endsAtIso: profile.beginner_protection_ends_at,
       breakReason: profile.protection_break_reason,
