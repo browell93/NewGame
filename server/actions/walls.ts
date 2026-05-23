@@ -14,7 +14,7 @@ export async function reinforceWallsAction() {
   if (!dashboard) redirect("/game/walls?error=City%20not%20found");
 
   const { error } = await supabase.rpc("reinforce_city_walls", {
-    target_city_id: dashboard.city.id,
+    p_city_id: dashboard.city.id,
   });
 
   if (error) redirect(`/game/walls?error=${encodeURIComponent(error.message)}`);
