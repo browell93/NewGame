@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { getMissingSupabaseEnvNames } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getPrimaryCityDashboard } from "@/server/services/city-dashboard";
-import { projectAccruedResources } from "@/server/services/resource-accrual";
+import { projectCollectableResources } from "@/server/services/resource-accrual";
 
 export async function collectResourcesAction() {
   if (getMissingSupabaseEnvNames().length > 0) {
@@ -27,8 +27,9 @@ export async function collectResourcesAction() {
     redirect("/game?error=City%20not%20found");
   }
 
-  const nextResources = projectAccruedResources({
+  const projection = projectCollectableResources({
     snapshot: dashboard.resources,
+    fractions: dashboard.resourceFractions,
     lastCollectedAt: dashboard.resourcesLastCollectedAt,
     taxRate: dashboard.population.taxRate,
   });
@@ -36,12 +37,17 @@ export async function collectResourcesAction() {
   const { error } = await supabase
     .from("city_resources")
     .update({
-      gold: nextResources.gold,
-      food: nextResources.food,
-      lumber: nextResources.lumber,
-      stone: nextResources.stone,
-      iron: nextResources.iron,
-      last_collected_at: new Date().toISOString(),
+      gold: projection.resources.gold,
+      food: projection.resources.food,
+      lumber: projection.resources.lumber,
+      stone: projection.resources.stone,
+      iron: projection.resources.iron,
+      gold_fraction: projection.fractions.gold,
+      food_fraction: projection.fractions.food,
+      lumber_fraction: projection.fractions.lumber,
+      stone_fraction: projection.fractions.stone,
+      iron_fraction: projection.fractions.iron,
+      last_collected_at: projection.nextLastCollectedAt,
     })
     .eq("city_id", dashboard.city.id);
 
