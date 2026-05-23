@@ -27,7 +27,21 @@ export async function queueMilitiaTrainingAction() {
 
   const { data: existing } = await supabase.from("city_troop_stacks").select("quantity").eq("city_id", dashboard.city.id).eq("troop_type", "militia").maybeSingle();
   const nextQty = (existing?.quantity ?? 0) + quantity;
-  await supabase.from("city_troop_stacks").upsert({ city_id: dashboard.city.id, troop_type: "militia", quantity: nextQty, updated_at: new Date().toISOString() }, { onConflict: "city_id,troop_type" });
+  const { error: stackError } = await supabase
+    .from("city_troop_stacks")
+    .upsert(
+      {
+        city_id: dashboard.city.id,
+        troop_type: "militia",
+        quantity: nextQty,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "city_id,troop_type" },
+    );
+
+  if (stackError) {
+    redirect(`/game/troops?error=${encodeURIComponent(stackError.message)}`);
+  }
 
   revalidatePath("/game/troops");
   redirect("/game/troops?message=Militia%20training%20queued");
