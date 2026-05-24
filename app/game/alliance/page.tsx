@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { DashboardPanel } from "@/components/game/dashboard-panel";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAllianceAction, postAllianceMessageAction } from "@/server/actions/alliance";
+import { logAllianceDrillAction } from "@/server/actions/alliance-events";
+import { getAllianceEvents } from "@/server/services/alliance-events";
 import { getAllianceMessages, getPlayerAlliance } from "@/server/services/alliance";
 
 export default async function AlliancePage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
@@ -10,11 +12,15 @@ export default async function AlliancePage({ searchParams }: { searchParams?: Pr
   const errorMessage = typeof params.error === "string" ? params.error : null;
 
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) redirect("/auth/sign-in?error=Please%20sign%20in%20to%20open%20alliance");
 
   const alliance = await getPlayerAlliance(supabase as never, user.id);
   const messages = alliance ? await getAllianceMessages(supabase as never, alliance.allianceId) : [];
+  const events = alliance ? await getAllianceEvents(supabase as never, alliance.allianceId) : [];
 
   return (
     <section className="space-y-6">
@@ -35,6 +41,23 @@ export default async function AlliancePage({ searchParams }: { searchParams?: Pr
           <DashboardPanel title="Alliance overview" eyebrow="Milestone 11">
             <p className="text-sm text-slate-200">[{alliance.tag}] {alliance.name}</p>
             <p className="text-sm text-slate-400">Your role: {alliance.role}</p>
+            <form action={logAllianceDrillAction} className="mt-3">
+              <button type="submit" className="rounded-xl border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-sm font-semibold text-emerald-100">Log alliance drill</button>
+            </form>
+          </DashboardPanel>
+
+          <DashboardPanel title="Alliance events" eyebrow="Milestone 16">
+            {events.length === 0 ? (
+              <p className="text-sm text-slate-300">No alliance events yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {events.map((event) => (
+                  <article key={event.id} className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-100">
+                    {event.eventType} • actor {event.actorPlayerId} • {new Date(event.createdAt).toLocaleString()}
+                  </article>
+                ))}
+              </div>
+            )}
           </DashboardPanel>
 
           <DashboardPanel title="Alliance chat" eyebrow="Coordination">
