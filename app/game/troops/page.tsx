@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { DashboardPanel } from "@/components/game/dashboard-panel";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { recalculateTroopUpkeepAction } from "@/server/actions/troop-upkeep";
 import { queueMilitiaTrainingAction } from "@/server/actions/troops";
 import { getPrimaryCityDashboard } from "@/server/services/city-dashboard";
 import { getCityTroops } from "@/server/services/troops";
+import { getCityTroopUpkeep } from "@/server/services/troop-upkeep";
 
 export default async function TroopsPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const params = (await searchParams) ?? {};
@@ -18,6 +20,7 @@ export default async function TroopsPage({ searchParams }: { searchParams?: Prom
   if (!dashboard) redirect("/game?error=City%20not%20found");
 
   const troopState = await getCityTroops(supabase as never, dashboard.city.id);
+  const upkeepState = await getCityTroopUpkeep(supabase as never, dashboard.city.id);
 
   return (
     <section className="space-y-6">
@@ -26,9 +29,19 @@ export default async function TroopsPage({ searchParams }: { searchParams?: Prom
 
       <DashboardPanel title="Troop training" eyebrow="Milestone 7">
         <p className="text-sm text-slate-300">Queue militia training to validate troop production flow.</p>
-        <form action={queueMilitiaTrainingAction} className="mt-4">
-          <button type="submit" className="rounded-xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm font-semibold text-amber-100">Queue 25 Militia</button>
-        </form>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <form action={queueMilitiaTrainingAction}>
+            <button type="submit" className="rounded-xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm font-semibold text-amber-100">Queue 25 Militia</button>
+          </form>
+          <form action={recalculateTroopUpkeepAction}>
+            <button type="submit" className="rounded-xl border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-sm font-semibold text-emerald-100">Recalculate upkeep</button>
+          </form>
+        </div>
+      </DashboardPanel>
+
+      <DashboardPanel title="Troop upkeep" eyebrow="Milestone 18">
+        <p className="text-sm text-slate-300">Hourly food upkeep: {upkeepState?.hourlyFoodUpkeep ?? 0}</p>
+        <p className="text-xs text-slate-400">Last calculated: {upkeepState ? new Date(upkeepState.lastCalculatedAt).toLocaleString() : "Never"}</p>
       </DashboardPanel>
 
       <DashboardPanel title="Troop stacks" eyebrow="City army">
