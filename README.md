@@ -113,10 +113,12 @@ npm run build
 
 ## 7. Vercel deployment notes
 
-Set the same two environment variables in Vercel for every deployment environment you intend to use:
+Set Supabase environment variables in Vercel for every deployment environment you intend to use:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` (preferred) **or** `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+For the production `new-game-ruddy.vercel.app` deployment, make sure both variables are enabled for **Production** and then redeploy after saving them. If either value is missing, public pages continue to load, but game/auth requests show setup guidance instead of crashing with a 500.
 
 Preview and Production can point to separate Supabase projects when you are ready to isolate staging data.
 
@@ -143,3 +145,31 @@ Move to **Milestone 2** next:
 - Beginner protection state
 - Expanded navigation
 - Tests for protection expiration rules
+
+## Vercel Redeploy Checklist
+
+1. Copy `.env.example` to `.env.local` for local development.
+2. In Vercel project settings, add:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+3. Ensure Vercel uses Node `22.x` and npm `10.x` (from `package.json`).
+4. Trigger a redeploy from the latest `main` commit.
+
+This repository includes `vercel.json` with `npm ci` for deterministic installs.
+
+
+## Milestone 2 implementation checklist
+
+Use this checklist to keep the next PR focused and testable:
+
+- [ ] Starter profile/city creation remains idempotent across repeated first-login requests.
+- [ ] Region assignment writes deterministic defaults and persists them on the player profile.
+- [ ] Beginner protection stores start/end timestamps and can be invalidated by explicit early-break conditions.
+- [ ] Navigation links for newly introduced game sections resolve to routes that render without auth/session regressions.
+- [ ] Unit tests cover beginner protection expiration and early-break rule behavior.
+
+Recommended PR scope: only Milestone 2 acceptance work; defer resource accrual and queue systems to later milestones.
+
+## Deployment troubleshooting
+
+If Vercel reports a compile error for code that is already fixed locally, verify the failing deployment commit SHA is behind `main` and redeploy after pushing the latest commit.
