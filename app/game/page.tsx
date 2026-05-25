@@ -14,6 +14,8 @@ import { getCityLoyaltyEvents } from "@/server/services/loyalty-events";
 import { getCityEdicts } from "@/server/services/city-edicts";
 import { imposeCurfewAction } from "@/server/actions/unrest";
 import { getCityUnrestIncidents } from "@/server/services/unrest-incidents";
+import { launchHarvestFestivalAction } from "@/server/actions/decrees";
+import { getCityDecrees } from "@/server/services/city-decrees";
 import { projectAccruedResources } from "@/server/services/resource-accrual";
 
 const resourceLabels = {
@@ -91,6 +93,7 @@ export default async function GameDashboardPage({
   const loyaltyEvents = await getCityLoyaltyEvents(supabase as never, dashboard.city.id);
   const edicts = await getCityEdicts(supabase as never, dashboard.city.id);
   const unrestIncidents = await getCityUnrestIncidents(supabase as never, dashboard.city.id);
+  const decrees = await getCityDecrees(supabase as never, dashboard.city.id);
   const protectionLabel = getBeginnerProtectionLabel(dashboard.protection);
 
   return (
@@ -179,6 +182,21 @@ export default async function GameDashboardPage({
             </p>
           ))}
           {unrestIncidents.length === 0 ? <p className="text-xs text-slate-400">No unrest incidents yet.</p> : null}
+        </div>
+      </DashboardPanel>
+
+      <DashboardPanel title="Seasonal decrees" eyebrow="Milestone 22">
+        <p className="text-sm text-slate-300">Time-limited decrees provide modest stability and revenue bonuses.</p>
+        <form action={launchHarvestFestivalAction} className="mt-3">
+          <button type="submit" className="rounded-xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm font-semibold text-amber-100">Launch harvest festival (+tax, +loyalty)</button>
+        </form>
+        <div className="mt-3 space-y-2">
+          {decrees.slice(0, 3).map((decree) => (
+            <p key={decree.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+              {decree.decreeKey}: tax {decree.taxRateDelta >= 0 ? "+" : ""}{decree.taxRateDelta}, loyalty {decree.loyaltyDelta >= 0 ? "+" : ""}{decree.loyaltyDelta}, unrest {decree.unrestDelta >= 0 ? "+" : ""}{decree.unrestDelta}
+            </p>
+          ))}
+          {decrees.length === 0 ? <p className="text-xs text-slate-400">No decrees recorded yet.</p> : null}
         </div>
       </DashboardPanel>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
