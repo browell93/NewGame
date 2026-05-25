@@ -1,10 +1,18 @@
 import { redirect } from "next/navigation";
 import { DashboardPanel } from "@/components/game/dashboard-panel";
 import { MetricCard } from "@/components/game/metric-card";
+import { getMissingSupabaseEnvNames } from "@/lib/env";
+import { getBeginnerProtectionLabel, isBeginnerProtectionActive } from "@/lib/game/beginner-protection";
 import { formatResourceAmount } from "@/lib/game/resource-math";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { collectResourcesAction } from "@/server/actions/resources";
 import { ensureStarterCityForUser } from "@/server/services/bootstrap";
 import { getPrimaryCityDashboard } from "@/server/services/city-dashboard";
+import { hostFestivalAction } from "@/server/actions/loyalty";
+import { declareTaxReliefAction } from "@/server/actions/edicts";
+import { getCityLoyaltyEvents } from "@/server/services/loyalty-events";
+import { getCityEdicts } from "@/server/services/city-edicts";
+import { projectAccruedResources } from "@/server/services/resource-accrual";
 
 const resourceLabels = {
   gold: "Gold",
@@ -14,7 +22,36 @@ const resourceLabels = {
   iron: "Iron",
 } as const;
 
-export default async function GameDashboardPage() {
+function SupabaseSetupNotice({ missingEnvNames }: { missingEnvNames: string[] }) {
+  return (
+    <section className="rounded-[2rem] border border-amber-300/20 bg-amber-300/10 p-6 shadow-2xl shadow-black/20">
+      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-200">Supabase setup required</p>
+      <h2 className="mt-3 text-3xl font-black tracking-tight text-white">Add your Supabase environment variables in Vercel.</h2>
+      <ul className="mt-5 space-y-2 text-sm text-slate-100">
+        {missingEnvNames.map((name) => (
+          <li key={name} className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 font-mono">
+            {name}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export default async function GameDashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = (await searchParams) ?? {};
+  const message = typeof params.message === "string" ? params.message : null;
+  const errorMessage = typeof params.error === "string" ? params.error : null;
+
+  const missingEnvNames = getMissingSupabaseEnvNames();
+  if (missingEnvNames.length > 0) {
+    return <SupabaseSetupNotice missingEnvNames={missingEnvNames} />;
+  }
+
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
@@ -26,90 +63,109 @@ export default async function GameDashboardPage() {
 
   await ensureStarterCityForUser(supabase, user);
   const dashboard = await getPrimaryCityDashboard(supabase, user.id);
+  if (!dashboard) throw new Error("Starter city bootstrap completed, but no dashboard city could be loaded.");
 
-  if (!dashboard) {
-    throw new Error("Starter city bootstrap completed, but no dashboard city could be loaded.");
-  }
+  const projectedResources = projectAccruedResources({
+    snapshot: dashboard.resources,
+    lastCollectedAt: dashboard.resourcesLastCollectedAt,
+    taxRate: dashboard.population.taxRate,
+  });
 
   const resources = Object.entries(resourceLabels).map(([key, label]) => ({
     key,
     label,
-    value: dashboard.resources[key as keyof typeof dashboard.resources],
+    value: projectedResources[key as keyof typeof projectedResources],
   }));
+  const productionPerHour = {
+    gold: Math.floor(36 * (1 + Math.max(0, dashboard.population.taxRate) / 100)),
+    food: 140,
+    lumber: 110,
+    stone: 95,
+    iron: 80,
+  };
+
+
+  const protectionIsActive = isBeginnerProtectionActive(dashboard.protection);
+  const loyaltyEvents = await getCityLoyaltyEvents(supabase as never, dashboard.city.id);
+  const edicts = await getCityEdicts(supabase as never, dashboard.city.id);
+  const protectionLabel = getBeginnerProtectionLabel(dashboard.protection);
 
   return (
     <section className="space-y-6">
+      {message ? <p className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 p-3 text-sm text-emerald-100">{message}</p> : null}
+      {errorMessage ? <p className="rounded-xl border border-rose-300/20 bg-rose-300/10 p-3 text-sm text-rose-100">{errorMessage}</p> : null}
+
       <DashboardPanel>
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-200">
-              Capital city
-            </p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-200">Capital city</p>
             <h2 className="mt-3 text-4xl font-black tracking-tight text-white">{dashboard.city.name}</h2>
-            <p className="mt-3 max-w-3xl leading-7 text-slate-300">
-              Your realm has been provisioned with a first-city profile, a starter economy, and the initial
-              urban structures required for future milestones.
-            </p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-slate-300">
-            Region: <span className="font-semibold text-white">{dashboard.city.regionKey}</span>
+          <div className="space-y-2">
+            <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-slate-300">
+              Region: <span className="font-semibold text-white">{dashboard.city.regionKey}</span>
+            </div>
+            <div className={`rounded-2xl border px-4 py-3 text-sm ${protectionIsActive ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-100" : "border-white/10 bg-slate-950/60 text-slate-300"}`}>
+              Beginner protection: <span className="font-semibold">{protectionLabel}</span>
+            </div>
           </div>
+        </div>
+
+        <div className="mt-4">
+          <form action={collectResourcesAction}>
+            <button type="submit" className="rounded-xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm font-semibold text-amber-100">
+              Collect now
+            </button>
+          </form>
         </div>
       </DashboardPanel>
 
+
+      <DashboardPanel title="Resource cadence" eyebrow="Milestone 3">
+        <p className="text-sm text-slate-300">Last collected: {new Date(dashboard.resourcesLastCollectedAt).toLocaleString()}</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {Object.entries(resourceLabels).map(([key, label]) => (
+            <p key={`rate-${key}`} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-sm text-slate-200">
+              {label}: +{formatResourceAmount(productionPerHour[key as keyof typeof productionPerHour])}/hr
+            </p>
+          ))}
+        </div>
+      </DashboardPanel>
+
+
+      <DashboardPanel title="Loyalty and unrest" eyebrow="Milestone 19">
+        <p className="text-sm text-slate-300">Loyalty {dashboard.population.loyalty}% • Unrest {dashboard.population.unrest}%</p>
+        <form action={hostFestivalAction} className="mt-3">
+          <button type="submit" className="rounded-xl border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-sm font-semibold text-emerald-100">Host festival (+loyalty)</button>
+        </form>
+        <div className="mt-3 space-y-2">
+          {loyaltyEvents.slice(0, 3).map((event) => (
+            <p key={event.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+              {event.eventType}: loyalty {event.loyaltyDelta >= 0 ? "+" : ""}{event.loyaltyDelta}, unrest {event.unrestDelta >= 0 ? "+" : ""}{event.unrestDelta}
+            </p>
+          ))}
+          {loyaltyEvents.length === 0 ? <p className="text-xs text-slate-400">No loyalty events yet.</p> : null}
+        </div>
+      </DashboardPanel>
+
+
+      <DashboardPanel title="City edicts" eyebrow="Milestone 20">
+        <p className="text-sm text-slate-300">Use policy decisions to stabilize your city while trading growth for taxes.</p>
+        <form action={declareTaxReliefAction} className="mt-3">
+          <button type="submit" className="rounded-xl border border-sky-300/30 bg-sky-300/10 px-3 py-2 text-sm font-semibold text-sky-100">Declare tax relief (-tax, +loyalty)</button>
+        </form>
+        <div className="mt-3 space-y-2">
+          {edicts.slice(0, 3).map((edict) => (
+            <p key={edict.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+              {edict.edictKey}: tax {edict.taxRateDelta >= 0 ? "+" : ""}{edict.taxRateDelta}, loyalty {edict.loyaltyDelta >= 0 ? "+" : ""}{edict.loyaltyDelta}, unrest {edict.unrestDelta >= 0 ? "+" : ""}{edict.unrestDelta}
+            </p>
+          ))}
+          {edicts.length === 0 ? <p className="text-xs text-slate-400">No edicts issued yet.</p> : null}
+        </div>
+      </DashboardPanel>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {resources.map((resource) => (
-          <MetricCard
-            key={resource.key}
-            label={resource.label}
-            value={formatResourceAmount(resource.value)}
-            detail="Starter stockpile"
-          />
-        ))}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-        <DashboardPanel title="Population snapshot" eyebrow="City state">
-          <dl className="grid gap-4 sm:grid-cols-2">
-            <MetricCard label="Maximum" value={dashboard.population.maxPopulation.toLocaleString()} detail="Housing cap" compact />
-            <MetricCard label="Current" value={dashboard.population.currentPopulation.toLocaleString()} detail="Residents" compact />
-            <MetricCard label="Idle" value={dashboard.population.idlePopulation.toLocaleString()} detail="Ready labor" compact />
-            <MetricCard label="Tax rate" value={`${dashboard.population.taxRate}%`} detail={`Loyalty ${dashboard.population.loyalty}%`} compact />
-          </dl>
-        </DashboardPanel>
-
-        <DashboardPanel title="Starting buildings" eyebrow="Urban core">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {dashboard.buildings.map((building) => (
-              <article
-                key={building.key}
-                className="rounded-2xl border border-white/10 bg-slate-950/60 p-4"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-semibold text-white">{building.name}</p>
-                    <p className="mt-1 text-sm text-slate-400">{building.category}</p>
-                  </div>
-                  <span className="rounded-full bg-amber-300/10 px-3 py-1 text-xs font-semibold text-amber-100">
-                    Lv. {building.level}
-                  </span>
-                </div>
-              </article>
-            ))}
-          </div>
-        </DashboardPanel>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          ["Queues", "Construction, research, and training queues land in Milestones 3–5."],
-          ["Heroes", "Inn recruitment and city assignments arrive in Milestone 6."],
-          ["Research", "Academy technologies and modifiers arrive in Milestone 5."],
-          ["Troops", "Barracks production and city troop stacks arrive in Milestone 7."],
-        ].map(([title, detail]) => (
-          <DashboardPanel key={title} title={title} eyebrow="Placeholder">
-            <p className="text-sm leading-6 text-slate-300">{detail}</p>
-          </DashboardPanel>
+          <MetricCard key={resource.key} label={resource.label} value={formatResourceAmount(resource.value)} detail="Projected with passive accrual" />
         ))}
       </div>
     </section>
