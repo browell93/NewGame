@@ -12,6 +12,8 @@ import { hostFestivalAction } from "@/server/actions/loyalty";
 import { declareTaxReliefAction } from "@/server/actions/edicts";
 import { getCityLoyaltyEvents } from "@/server/services/loyalty-events";
 import { getCityEdicts } from "@/server/services/city-edicts";
+import { imposeCurfewAction } from "@/server/actions/unrest";
+import { getCityUnrestIncidents } from "@/server/services/unrest-incidents";
 import { projectAccruedResources } from "@/server/services/resource-accrual";
 
 const resourceLabels = {
@@ -88,6 +90,7 @@ export default async function GameDashboardPage({
   const protectionIsActive = isBeginnerProtectionActive(dashboard.protection);
   const loyaltyEvents = await getCityLoyaltyEvents(supabase as never, dashboard.city.id);
   const edicts = await getCityEdicts(supabase as never, dashboard.city.id);
+  const unrestIncidents = await getCityUnrestIncidents(supabase as never, dashboard.city.id);
   const protectionLabel = getBeginnerProtectionLabel(dashboard.protection);
 
   return (
@@ -161,6 +164,21 @@ export default async function GameDashboardPage({
             </p>
           ))}
           {edicts.length === 0 ? <p className="text-xs text-slate-400">No edicts issued yet.</p> : null}
+        </div>
+      </DashboardPanel>
+
+      <DashboardPanel title="Unrest controls" eyebrow="Milestone 21">
+        <p className="text-sm text-slate-300">Emergency controls reduce unrest quickly but hurt loyalty.</p>
+        <form action={imposeCurfewAction} className="mt-3">
+          <button type="submit" className="rounded-xl border border-rose-300/30 bg-rose-300/10 px-3 py-2 text-sm font-semibold text-rose-100">Impose curfew (-unrest, -loyalty)</button>
+        </form>
+        <div className="mt-3 space-y-2">
+          {unrestIncidents.slice(0, 3).map((incident) => (
+            <p key={incident.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+              {incident.incidentKey}: tax {incident.taxRateDelta >= 0 ? "+" : ""}{incident.taxRateDelta}, loyalty {incident.loyaltyDelta >= 0 ? "+" : ""}{incident.loyaltyDelta}, unrest {incident.unrestDelta >= 0 ? "+" : ""}{incident.unrestDelta}
+            </p>
+          ))}
+          {unrestIncidents.length === 0 ? <p className="text-xs text-slate-400">No unrest incidents yet.</p> : null}
         </div>
       </DashboardPanel>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
