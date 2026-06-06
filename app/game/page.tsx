@@ -8,6 +8,16 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { collectResourcesAction } from "@/server/actions/resources";
 import { ensureStarterCityForUser } from "@/server/services/bootstrap";
 import { getPrimaryCityDashboard } from "@/server/services/city-dashboard";
+import { hostFestivalAction } from "@/server/actions/loyalty";
+import { declareTaxReliefAction } from "@/server/actions/edicts";
+import { getCityLoyaltyEvents } from "@/server/services/loyalty-events";
+import { getCityEdicts } from "@/server/services/city-edicts";
+import { imposeCurfewAction } from "@/server/actions/unrest";
+import { getCityUnrestIncidents } from "@/server/services/unrest-incidents";
+import { launchHarvestFestivalAction } from "@/server/actions/decrees";
+import { getCityDecrees } from "@/server/services/city-decrees";
+import { fundPublicWorksAction } from "@/server/actions/ordinances";
+import { getCityOrdinances } from "@/server/services/city-ordinances";
 import { projectAccruedResources } from "@/server/services/resource-accrual";
 
 const resourceLabels = {
@@ -82,6 +92,11 @@ export default async function GameDashboardPage({
 
 
   const protectionIsActive = isBeginnerProtectionActive(dashboard.protection);
+  const loyaltyEvents = await getCityLoyaltyEvents(supabase as never, dashboard.city.id);
+  const edicts = await getCityEdicts(supabase as never, dashboard.city.id);
+  const unrestIncidents = await getCityUnrestIncidents(supabase as never, dashboard.city.id);
+  const decrees = await getCityDecrees(supabase as never, dashboard.city.id);
+  const ordinances = await getCityOrdinances(supabase as never, dashboard.city.id);
   const protectionLabel = getBeginnerProtectionLabel(dashboard.protection);
 
   return (
@@ -126,6 +141,83 @@ export default async function GameDashboardPage({
         </div>
       </DashboardPanel>
 
+
+      <DashboardPanel title="Loyalty and unrest" eyebrow="Milestone 19">
+        <p className="text-sm text-slate-300">Loyalty {dashboard.population.loyalty}% • Unrest {dashboard.population.unrest}%</p>
+        <form action={hostFestivalAction} className="mt-3">
+          <button type="submit" className="rounded-xl border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-sm font-semibold text-emerald-100">Host festival (+loyalty)</button>
+        </form>
+        <div className="mt-3 space-y-2">
+          {loyaltyEvents.slice(0, 3).map((event) => (
+            <p key={event.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+              {event.eventType}: loyalty {event.loyaltyDelta >= 0 ? "+" : ""}{event.loyaltyDelta}, unrest {event.unrestDelta >= 0 ? "+" : ""}{event.unrestDelta}
+            </p>
+          ))}
+          {loyaltyEvents.length === 0 ? <p className="text-xs text-slate-400">No loyalty events yet.</p> : null}
+        </div>
+      </DashboardPanel>
+
+
+      <DashboardPanel title="City edicts" eyebrow="Milestone 20">
+        <p className="text-sm text-slate-300">Use policy decisions to stabilize your city while trading growth for taxes.</p>
+        <form action={declareTaxReliefAction} className="mt-3">
+          <button type="submit" className="rounded-xl border border-sky-300/30 bg-sky-300/10 px-3 py-2 text-sm font-semibold text-sky-100">Declare tax relief (-tax, +loyalty)</button>
+        </form>
+        <div className="mt-3 space-y-2">
+          {edicts.slice(0, 3).map((edict) => (
+            <p key={edict.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+              {edict.edictKey}: tax {edict.taxRateDelta >= 0 ? "+" : ""}{edict.taxRateDelta}, loyalty {edict.loyaltyDelta >= 0 ? "+" : ""}{edict.loyaltyDelta}, unrest {edict.unrestDelta >= 0 ? "+" : ""}{edict.unrestDelta}
+            </p>
+          ))}
+          {edicts.length === 0 ? <p className="text-xs text-slate-400">No edicts issued yet.</p> : null}
+        </div>
+      </DashboardPanel>
+
+      <DashboardPanel title="Unrest controls" eyebrow="Milestone 21">
+        <p className="text-sm text-slate-300">Emergency controls reduce unrest quickly but hurt loyalty.</p>
+        <form action={imposeCurfewAction} className="mt-3">
+          <button type="submit" className="rounded-xl border border-rose-300/30 bg-rose-300/10 px-3 py-2 text-sm font-semibold text-rose-100">Impose curfew (-unrest, -loyalty)</button>
+        </form>
+        <div className="mt-3 space-y-2">
+          {unrestIncidents.slice(0, 3).map((incident) => (
+            <p key={incident.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+              {incident.incidentKey}: tax {incident.taxRateDelta >= 0 ? "+" : ""}{incident.taxRateDelta}, loyalty {incident.loyaltyDelta >= 0 ? "+" : ""}{incident.loyaltyDelta}, unrest {incident.unrestDelta >= 0 ? "+" : ""}{incident.unrestDelta}
+            </p>
+          ))}
+          {unrestIncidents.length === 0 ? <p className="text-xs text-slate-400">No unrest incidents yet.</p> : null}
+        </div>
+      </DashboardPanel>
+
+      <DashboardPanel title="Seasonal decrees" eyebrow="Milestone 22">
+        <p className="text-sm text-slate-300">Time-limited decrees provide modest stability and revenue bonuses.</p>
+        <form action={launchHarvestFestivalAction} className="mt-3">
+          <button type="submit" className="rounded-xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm font-semibold text-amber-100">Launch harvest festival (+tax, +loyalty)</button>
+        </form>
+        <div className="mt-3 space-y-2">
+          {decrees.slice(0, 3).map((decree) => (
+            <p key={decree.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+              {decree.decreeKey}: tax {decree.taxRateDelta >= 0 ? "+" : ""}{decree.taxRateDelta}, loyalty {decree.loyaltyDelta >= 0 ? "+" : ""}{decree.loyaltyDelta}, unrest {decree.unrestDelta >= 0 ? "+" : ""}{decree.unrestDelta}
+            </p>
+          ))}
+          {decrees.length === 0 ? <p className="text-xs text-slate-400">No decrees recorded yet.</p> : null}
+        </div>
+      </DashboardPanel>
+
+
+      <DashboardPanel title="City ordinances" eyebrow="Milestone 23">
+        <p className="text-sm text-slate-300">Longer-running ordinances let you fund civic works and stabilize the realm.</p>
+        <form action={fundPublicWorksAction} className="mt-3">
+          <button type="submit" className="rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 text-sm font-semibold text-cyan-100">Fund public works (+loyalty, -unrest)</button>
+        </form>
+        <div className="mt-3 space-y-2">
+          {ordinances.slice(0, 3).map((ordinance) => (
+            <p key={ordinance.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+              {ordinance.ordinanceKey}: tax {ordinance.taxRateDelta >= 0 ? "+" : ""}{ordinance.taxRateDelta}, loyalty {ordinance.loyaltyDelta >= 0 ? "+" : ""}{ordinance.loyaltyDelta}, unrest {ordinance.unrestDelta >= 0 ? "+" : ""}{ordinance.unrestDelta}
+            </p>
+          ))}
+          {ordinances.length === 0 ? <p className="text-xs text-slate-400">No ordinances passed yet.</p> : null}
+        </div>
+      </DashboardPanel>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {resources.map((resource) => (
           <MetricCard key={resource.key} label={resource.label} value={formatResourceAmount(resource.value)} detail="Projected with passive accrual" />
