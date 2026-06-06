@@ -16,6 +16,8 @@ import { imposeCurfewAction } from "@/server/actions/unrest";
 import { getCityUnrestIncidents } from "@/server/services/unrest-incidents";
 import { launchHarvestFestivalAction } from "@/server/actions/decrees";
 import { getCityDecrees } from "@/server/services/city-decrees";
+import { fundPublicWorksAction } from "@/server/actions/ordinances";
+import { getCityOrdinances } from "@/server/services/city-ordinances";
 import { projectAccruedResources } from "@/server/services/resource-accrual";
 
 const resourceLabels = {
@@ -94,6 +96,7 @@ export default async function GameDashboardPage({
   const edicts = await getCityEdicts(supabase as never, dashboard.city.id);
   const unrestIncidents = await getCityUnrestIncidents(supabase as never, dashboard.city.id);
   const decrees = await getCityDecrees(supabase as never, dashboard.city.id);
+  const ordinances = await getCityOrdinances(supabase as never, dashboard.city.id);
   const protectionLabel = getBeginnerProtectionLabel(dashboard.protection);
 
   return (
@@ -197,6 +200,22 @@ export default async function GameDashboardPage({
             </p>
           ))}
           {decrees.length === 0 ? <p className="text-xs text-slate-400">No decrees recorded yet.</p> : null}
+        </div>
+      </DashboardPanel>
+
+
+      <DashboardPanel title="City ordinances" eyebrow="Milestone 23">
+        <p className="text-sm text-slate-300">Longer-running ordinances let you fund civic works and stabilize the realm.</p>
+        <form action={fundPublicWorksAction} className="mt-3">
+          <button type="submit" className="rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 text-sm font-semibold text-cyan-100">Fund public works (+loyalty, -unrest)</button>
+        </form>
+        <div className="mt-3 space-y-2">
+          {ordinances.slice(0, 3).map((ordinance) => (
+            <p key={ordinance.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+              {ordinance.ordinanceKey}: tax {ordinance.taxRateDelta >= 0 ? "+" : ""}{ordinance.taxRateDelta}, loyalty {ordinance.loyaltyDelta >= 0 ? "+" : ""}{ordinance.loyaltyDelta}, unrest {ordinance.unrestDelta >= 0 ? "+" : ""}{ordinance.unrestDelta}
+            </p>
+          ))}
+          {ordinances.length === 0 ? <p className="text-xs text-slate-400">No ordinances passed yet.</p> : null}
         </div>
       </DashboardPanel>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
