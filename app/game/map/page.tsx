@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { DashboardPanel } from "@/components/game/dashboard-panel";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { dispatchScoutMarchAction } from "@/server/actions/marches";
+import { planBorderPatrolOrderAction } from "@/server/actions/war-orders";
 import { scoutNextRegionAction } from "@/server/actions/map";
 import { getPlayerMapRegions } from "@/server/services/map-regions";
 import { getPlayerMarches } from "@/server/services/marches";
+import { getPlayerWarOrders } from "@/server/services/war-orders";
 
 export default async function MapPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const params = (await searchParams) ?? {};
@@ -17,6 +19,7 @@ export default async function MapPage({ searchParams }: { searchParams?: Promise
 
   const regions = await getPlayerMapRegions(supabase as never, user.id);
   const marches = await getPlayerMarches(supabase as never, user.id);
+  const warOrders = await getPlayerWarOrders(supabase as never, user.id);
 
   return (
     <section className="space-y-6">
@@ -37,6 +40,27 @@ export default async function MapPage({ searchParams }: { searchParams?: Promise
           <input name="troopQuantity" type="number" min={1} defaultValue={10} className="rounded-xl border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-white" />
           <button type="submit" className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold text-white">Dispatch scout march</button>
         </form>
+      </DashboardPanel>
+
+
+      <DashboardPanel title="War council orders" eyebrow="Milestone 26">
+        <p className="text-sm text-slate-300">Plan lightweight war orders before turning them into marches or battle resolutions.</p>
+        <form action={planBorderPatrolOrderAction} className="mt-4 grid gap-3 sm:max-w-md">
+          <input name="targetRegionKey" placeholder="frontier-02" className="rounded-xl border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-white" />
+          <input name="troopQuantity" type="number" min={1} defaultValue={15} className="rounded-xl border border-white/20 bg-slate-950/60 px-3 py-2 text-sm text-white" />
+          <button type="submit" className="rounded-xl border border-red-300/30 bg-red-300/10 px-3 py-2 text-sm font-semibold text-red-100">Plan border patrol</button>
+        </form>
+        <div className="mt-4 space-y-2">
+          {warOrders.length === 0 ? (
+            <p className="text-sm text-slate-300">No war orders planned.</p>
+          ) : (
+            warOrders.map((order) => (
+              <article key={order.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-sm text-slate-200">
+                {order.orderKey} → {order.targetRegionKey} • {order.troopType} x{order.troopQuantity} • {order.status}
+              </article>
+            ))
+          )}
+        </div>
       </DashboardPanel>
 
       <DashboardPanel title="Known regions" eyebrow="Exploration">
