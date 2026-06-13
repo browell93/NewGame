@@ -2,17 +2,17 @@ import Link from "next/link";
 import { signOutAction } from "@/server/actions/auth";
 
 const navItems = [
-  "City",
-  "Buildings",
-  "Resources",
-  "Research",
-  "Heroes",
-  "Troops",
-  "Walls",
-  "Map",
-  "Reports",
-  "Alliance",
-  "Inventory",
+  { label: "City", href: "/game" },
+  { label: "Buildings", href: "/game/buildings" },
+  { label: "Resources", href: "/game/resources" },
+  { label: "Research", href: "/game/research" },
+  { label: "Heroes", href: "/game/heroes" },
+  { label: "Troops", href: "/game/troops" },
+  { label: "Walls", href: "/game/walls" },
+  { label: "Map", href: "/game/map" },
+  { label: "Reports", href: "/game/reports" },
+  { label: "Alliance", href: "/game/alliance" },
+  { label: "Inventory", href: "/game/inventory" },
 ];
 
 export default function GameLayout({ children }: { children: React.ReactNode }) {
@@ -28,27 +28,17 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
           </div>
 
           <form action={signOutAction}>
-            <button
-              className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-rose-300/40 hover:bg-rose-300/10 hover:text-rose-100"
-              type="submit"
-            >
+            <button className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-semibold text-slate-100" type="submit">
               Sign out
             </button>
           </form>
         </div>
 
         <nav className="mt-5 flex gap-2 overflow-x-auto pb-1 text-sm">
-          {navItems.map((item, index) => (
-            <span
-              key={item}
-              className={`whitespace-nowrap rounded-full border px-3 py-1.5 ${
-                index === 0
-                  ? "border-amber-300/40 bg-amber-300/10 text-amber-100"
-                  : "border-white/10 bg-slate-950/60 text-slate-400"
-              }`}
-            >
-              {item}
-            </span>
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href} className="whitespace-nowrap rounded-full border border-white/10 bg-slate-950/60 px-3 py-1.5 text-slate-300 hover:text-white">
+              {item.label}
+            </Link>
           ))}
         </nav>
       </header>
