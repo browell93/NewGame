@@ -20,8 +20,6 @@ import { fundPublicWorksAction } from "@/server/actions/ordinances";
 import { getCityOrdinances } from "@/server/services/city-ordinances";
 import { openMarketProclamationAction } from "@/server/actions/proclamations";
 import { getCityProclamations } from "@/server/services/city-proclamations";
-import { issueCivicServiceMandateAction } from "@/server/actions/mandates";
-import { getCityMandates } from "@/server/services/city-mandates";
 import { projectAccruedResources } from "@/server/services/resource-accrual";
 
 const resourceLabels = {
@@ -102,7 +100,6 @@ export default async function GameDashboardPage({
   const decrees = await getCityDecrees(supabase as never, dashboard.city.id);
   const ordinances = await getCityOrdinances(supabase as never, dashboard.city.id);
   const proclamations = await getCityProclamations(supabase as never, dashboard.city.id);
-  const mandates = await getCityMandates(supabase as never, dashboard.city.id);
   const protectionLabel = getBeginnerProtectionLabel(dashboard.protection);
 
   return (
@@ -238,22 +235,6 @@ export default async function GameDashboardPage({
             </p>
           ))}
           {proclamations.length === 0 ? <p className="text-xs text-slate-400">No proclamations issued yet.</p> : null}
-        </div>
-      </DashboardPanel>
-
-
-      <DashboardPanel title="City mandates" eyebrow="Milestone 25">
-        <p className="text-sm text-slate-300">Mandates are firm civic orders that can suppress unrest at a small loyalty cost.</p>
-        <form action={issueCivicServiceMandateAction} className="mt-3">
-          <button type="submit" className="rounded-xl border border-fuchsia-300/30 bg-fuchsia-300/10 px-3 py-2 text-sm font-semibold text-fuchsia-100">Issue civic service mandate (-unrest, -loyalty)</button>
-        </form>
-        <div className="mt-3 space-y-2">
-          {mandates.slice(0, 3).map((mandate) => (
-            <p key={mandate.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
-              {mandate.mandateKey}: tax {mandate.taxRateDelta >= 0 ? "+" : ""}{mandate.taxRateDelta}, loyalty {mandate.loyaltyDelta >= 0 ? "+" : ""}{mandate.loyaltyDelta}, unrest {mandate.unrestDelta >= 0 ? "+" : ""}{mandate.unrestDelta}
-            </p>
-          ))}
-          {mandates.length === 0 ? <p className="text-xs text-slate-400">No mandates issued yet.</p> : null}
         </div>
       </DashboardPanel>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
