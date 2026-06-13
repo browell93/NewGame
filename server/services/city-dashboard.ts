@@ -33,10 +33,15 @@ type ProfileRow = {
 type ResourceRow = {
   last_collected_at: string;
   food: number;
+  food_fraction: number;
   gold: number;
+  gold_fraction: number;
   iron: number;
+  iron_fraction: number;
   lumber: number;
+  lumber_fraction: number;
   stone: number;
+  stone_fraction: number;
 };
 
 type PopulationRow = {
