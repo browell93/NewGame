@@ -20,6 +20,8 @@ import { fundPublicWorksAction } from "@/server/actions/ordinances";
 import { getCityOrdinances } from "@/server/services/city-ordinances";
 import { openMarketProclamationAction } from "@/server/actions/proclamations";
 import { getCityProclamations } from "@/server/services/city-proclamations";
+import { issueCivicServiceMandateAction } from "@/server/actions/mandates";
+import { getCityMandates } from "@/server/services/city-mandates";
 import { projectAccruedResources } from "@/server/services/resource-accrual";
 
 const resourceLabels = {
@@ -30,6 +32,27 @@ const resourceLabels = {
   iron: "Iron",
 } as const;
 
+
+function GameSetupErrorNotice({ errorMessage }: { errorMessage: string }) {
+  return (
+    <section className="rounded-[2rem] border border-rose-300/20 bg-rose-300/10 p-6 shadow-2xl shadow-black/20">
+      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-rose-200">Game setup needs attention</p>
+      <h2 className="mt-3 text-3xl font-black tracking-tight text-white">Your account signed in, but the game database is not ready yet.</h2>
+      <p className="mt-4 text-sm leading-6 text-slate-100">
+        Apply the Supabase migrations in order, then refresh this page. This usually happens when auth is configured but the newest game tables or starter-city RPC have not been applied.
+      </p>
+      <pre className="mt-5 overflow-auto rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-xs text-rose-100">{errorMessage}</pre>
+    </section>
+  );
+}
+
+async function optionalDashboardList<T>(loader: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await loader();
+  } catch {
+    return [];
+  }
+}
 function SupabaseSetupNotice({ missingEnvNames }: { missingEnvNames: string[] }) {
   return (
     <section className="rounded-[2rem] border border-amber-300/20 bg-amber-300/10 p-6 shadow-2xl shadow-black/20">
@@ -69,9 +92,18 @@ export default async function GameDashboardPage({
     redirect("/auth/sign-in?error=Please%20sign%20in%20to%20open%20the%20game.");
   }
 
-  await ensureStarterCityForUser(supabase, user);
-  const dashboard = await getPrimaryCityDashboard(supabase, user.id);
-  if (!dashboard) throw new Error("Starter city bootstrap completed, but no dashboard city could be loaded.");
+  let dashboard;
+
+  try {
+    await ensureStarterCityForUser(supabase, user);
+    dashboard = await getPrimaryCityDashboard(supabase, user.id);
+  } catch (error) {
+    return <GameSetupErrorNotice errorMessage={error instanceof Error ? error.message : "Unknown game setup error."} />;
+  }
+
+  if (!dashboard) {
+    return <GameSetupErrorNotice errorMessage="Starter city bootstrap completed, but no dashboard city could be loaded." />;
+  }
 
   const projectedResources = projectAccruedResources({
     snapshot: dashboard.resources,
@@ -94,12 +126,13 @@ export default async function GameDashboardPage({
 
 
   const protectionIsActive = isBeginnerProtectionActive(dashboard.protection);
-  const loyaltyEvents = await getCityLoyaltyEvents(supabase as never, dashboard.city.id);
-  const edicts = await getCityEdicts(supabase as never, dashboard.city.id);
-  const unrestIncidents = await getCityUnrestIncidents(supabase as never, dashboard.city.id);
-  const decrees = await getCityDecrees(supabase as never, dashboard.city.id);
-  const ordinances = await getCityOrdinances(supabase as never, dashboard.city.id);
-  const proclamations = await getCityProclamations(supabase as never, dashboard.city.id);
+  const loyaltyEvents = await optionalDashboardList(() => getCityLoyaltyEvents(supabase as never, dashboard.city.id));
+  const edicts = await optionalDashboardList(() => getCityEdicts(supabase as never, dashboard.city.id));
+  const unrestIncidents = await optionalDashboardList(() => getCityUnrestIncidents(supabase as never, dashboard.city.id));
+  const decrees = await optionalDashboardList(() => getCityDecrees(supabase as never, dashboard.city.id));
+  const ordinances = await optionalDashboardList(() => getCityOrdinances(supabase as never, dashboard.city.id));
+  const proclamations = await optionalDashboardList(() => getCityProclamations(supabase as never, dashboard.city.id));
+  const mandates = await optionalDashboardList(() => getCityMandates(supabase as never, dashboard.city.id));
   const protectionLabel = getBeginnerProtectionLabel(dashboard.protection);
 
   return (
@@ -235,6 +268,22 @@ export default async function GameDashboardPage({
             </p>
           ))}
           {proclamations.length === 0 ? <p className="text-xs text-slate-400">No proclamations issued yet.</p> : null}
+        </div>
+      </DashboardPanel>
+
+
+      <DashboardPanel title="City mandates" eyebrow="Milestone 25">
+        <p className="text-sm text-slate-300">Mandates are firm civic orders that can suppress unrest at a small loyalty cost.</p>
+        <form action={issueCivicServiceMandateAction} className="mt-3">
+          <button type="submit" className="rounded-xl border border-fuchsia-300/30 bg-fuchsia-300/10 px-3 py-2 text-sm font-semibold text-fuchsia-100">Issue civic service mandate (-unrest, -loyalty)</button>
+        </form>
+        <div className="mt-3 space-y-2">
+          {mandates.slice(0, 3).map((mandate) => (
+            <p key={mandate.id} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-xs text-slate-300">
+              {mandate.mandateKey}: tax {mandate.taxRateDelta >= 0 ? "+" : ""}{mandate.taxRateDelta}, loyalty {mandate.loyaltyDelta >= 0 ? "+" : ""}{mandate.loyaltyDelta}, unrest {mandate.unrestDelta >= 0 ? "+" : ""}{mandate.unrestDelta}
+            </p>
+          ))}
+          {mandates.length === 0 ? <p className="text-xs text-slate-400">No mandates issued yet.</p> : null}
         </div>
       </DashboardPanel>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">

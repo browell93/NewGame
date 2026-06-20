@@ -6,6 +6,7 @@ export type CityMarch = {
   status: string;
   departsAt: string;
   arrivesAt: string;
+  warOrderId: string | null;
 };
 
 type MarchRow = {
@@ -16,6 +17,7 @@ type MarchRow = {
   status: string;
   departs_at: string;
   arrives_at: string;
+  war_order_id: string | null;
 };
 
 type MarchesClient = {
@@ -31,7 +33,7 @@ type MarchesClient = {
 export async function getPlayerMarches(client: MarchesClient, playerId: string): Promise<CityMarch[]> {
   const { data, error } = await client
     .from("city_marches")
-    .select("id, destination_region_key, troop_type, troop_quantity, status, departs_at, arrives_at")
+    .select("id, destination_region_key, troop_type, troop_quantity, status, departs_at, arrives_at, war_order_id")
     .eq("player_id", playerId)
     .order("created_at", { ascending: false });
 
@@ -47,5 +49,6 @@ export async function getPlayerMarches(client: MarchesClient, playerId: string):
     status: m.status,
     departsAt: m.departs_at,
     arrivesAt: m.arrives_at,
+    warOrderId: m.war_order_id,
   }));
 }
